@@ -1,4 +1,4 @@
-const CACHE_NAME = "taboo-jr-v1";
+const CACHE_NAME = "taboo-jr-v2";
 const ASSETS = [
   "./",
   "./index.html",

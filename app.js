@@ -1,26 +1,30 @@
 (() => {
   "use strict";
 
+  const CATEGORY_LABELS = {
+    all: "All Categories",
+    animals: "Animals",
+    food: "Food",
+    school: "School",
+    sports: "Sports",
+    movies: "Fantasy & Fun",
+    everyday: "Everyday",
+  };
+
   const state = {
     words: [],
     deck: [],
-    currentCard: null,
-    roundTime: 60,
-    timeLeft: 60,
-    timerId: null,
+    index: 0,
     difficulty: "easy",
-    category: "all",
-    teams: ["Team 1", "Team 2"],
-    scores: [0, 0],
-    activeTeam: 0,
-    roundScore: 0,
+    categories: new Set(["all"]),
   };
 
   const screens = {
     setup: document.getElementById("screen-setup"),
-    game: document.getElementById("screen-game"),
-    roundover: document.getElementById("screen-roundover"),
+    cards: document.getElementById("screen-cards"),
   };
+
+  const wordCard = document.getElementById("word-card");
 
   function showScreen(name) {
     Object.entries(screens).forEach(([key, el]) => {
@@ -28,41 +32,38 @@
     });
   }
 
-  function selectPill(groupEl, selectedBtn) {
-    groupEl.querySelectorAll(".pill").forEach((btn) => btn.classList.remove("selected"));
-    selectedBtn.classList.add("selected");
-  }
-
-  document.getElementById("time-group").addEventListener("click", (e) => {
-    const btn = e.target.closest(".pill");
-    if (!btn) return;
-    state.roundTime = parseInt(btn.dataset.time, 10);
-    selectPill(e.currentTarget, btn);
-  });
-
   document.getElementById("difficulty-group").addEventListener("click", (e) => {
     const btn = e.target.closest(".pill");
     if (!btn) return;
     state.difficulty = btn.dataset.difficulty;
-    selectPill(e.currentTarget, btn);
+    e.currentTarget.querySelectorAll(".pill").forEach((p) => p.classList.remove("selected"));
+    btn.classList.add("selected");
   });
 
   document.getElementById("category-group").addEventListener("click", (e) => {
     const btn = e.target.closest(".pill");
     if (!btn) return;
-    state.category = btn.dataset.category;
-    selectPill(e.currentTarget, btn);
-  });
+    const group = e.currentTarget;
+    const value = btn.dataset.category;
 
-  function vibrate(pattern) {
-    if (navigator.vibrate) {
-      try {
-        navigator.vibrate(pattern);
-      } catch (err) {
-        /* ignore unsupported vibration */
+    if (value === "all") {
+      state.categories = new Set(["all"]);
+    } else {
+      state.categories.delete("all");
+      if (state.categories.has(value)) {
+        state.categories.delete(value);
+      } else {
+        state.categories.add(value);
+      }
+      if (state.categories.size === 0) {
+        state.categories = new Set(["all"]);
       }
     }
-  }
+
+    group.querySelectorAll(".pill").forEach((p) => {
+      p.classList.toggle("selected", state.categories.has(p.dataset.category));
+    });
+  });
 
   function shuffle(arr) {
     const a = arr.slice();
@@ -75,24 +76,24 @@
 
   function buildDeck() {
     let pool = state.words;
-    if (state.category !== "all") {
-      pool = pool.filter((w) => w.category === state.category);
+    if (!state.categories.has("all")) {
+      pool = pool.filter((w) => state.categories.has(w.category));
     }
     if (state.difficulty === "easy") {
       pool = pool.filter((w) => w.difficulty === "easy");
     }
     if (pool.length === 0) pool = state.words;
     state.deck = shuffle(pool);
+    state.index = 0;
   }
 
-  function nextCard() {
-    if (state.deck.length === 0) buildDeck();
-    state.currentCard = state.deck.pop();
-    renderCard();
+  function categoryLabelText() {
+    if (state.categories.has("all")) return CATEGORY_LABELS.all;
+    return [...state.categories].map((c) => CATEGORY_LABELS[c] || c).join(", ");
   }
 
   function renderCard() {
-    const card = state.currentCard;
+    const card = state.deck[state.index];
     document.getElementById("target-word").textContent = card ? card.word : "🎉";
     const tabooList = document.getElementById("taboo-list");
     tabooList.innerHTML = "";
@@ -106,100 +107,102 @@
     }
   }
 
-  function updateTimerRing() {
-    const circumference = 283;
-    const pct = state.timeLeft / state.roundTime;
-    const offset = circumference * (1 - pct);
-    const ring = document.getElementById("timer-ring-fg");
-    ring.style.strokeDashoffset = offset;
-    ring.style.stroke = state.timeLeft <= 5 ? "var(--red, #dc2626)" : "var(--orange, #f97316)";
-    document.getElementById("timer-text").textContent = state.timeLeft;
-  }
-
-  function startRound() {
-    state.roundScore = 0;
-    state.timeLeft = state.roundTime;
-    document.getElementById("round-score").textContent = "Correct this round: 0";
-    document.getElementById("turn-indicator").textContent = `${state.teams[state.activeTeam]}'s turn`;
-    buildDeck();
-    nextCard();
-    updateTimerRing();
-    showScreen("game");
-
-    clearInterval(state.timerId);
-    state.timerId = setInterval(() => {
-      state.timeLeft -= 1;
-      updateTimerRing();
-      if (state.timeLeft <= 3 && state.timeLeft > 0) {
-        vibrate(60);
+  function stepIndex(delta) {
+    if (delta > 0) {
+      if (state.index < state.deck.length - 1) {
+        state.index++;
+      } else {
+        buildDeck();
       }
-      if (state.timeLeft <= 0) {
-        endRound();
-      }
-    }, 1000);
+    } else if (state.index > 0) {
+      state.index--;
+    }
   }
 
-  function endRound() {
-    clearInterval(state.timerId);
-    vibrate([120, 80, 120]);
-    state.scores[state.activeTeam] += state.roundScore;
-    renderScoreboard();
-    showScreen("roundover");
+  function advance(direction) {
+    // direction: 1 = next (card exits left), -1 = prev (card exits right)
+    const exitX = direction === 1 ? -window.innerWidth : window.innerWidth;
+    const exitRot = direction === 1 ? -15 : 15;
+    wordCard.style.transition = "transform 0.22s ease, opacity 0.22s ease";
+    wordCard.style.transform = `translateX(${exitX}px) rotate(${exitRot}deg)`;
+    wordCard.style.opacity = "0";
+
+    setTimeout(() => {
+      stepIndex(direction);
+      renderCard();
+      wordCard.style.transition = "none";
+      const enterX = direction === 1 ? window.innerWidth * 0.4 : -window.innerWidth * 0.4;
+      wordCard.style.transform = `translateX(${enterX}px)`;
+      wordCard.style.opacity = "0";
+      requestAnimationFrame(() => {
+        wordCard.style.transition = "transform 0.22s ease, opacity 0.22s ease";
+        wordCard.style.transform = "translateX(0) rotate(0)";
+        wordCard.style.opacity = "1";
+      });
+    }, 200);
   }
 
-  function renderScoreboard() {
-    const board = document.getElementById("scoreboard");
-    board.innerHTML = "";
-    const maxScore = Math.max(...state.scores);
-    state.teams.forEach((name, i) => {
-      const row = document.createElement("div");
-      row.className = "row" + (state.scores[i] === maxScore && maxScore > 0 ? " leader" : "");
-      row.innerHTML = `<span>${escapeHtml(name)}</span><span>${state.scores[i]}</span>`;
-      board.appendChild(row);
-    });
-    const nextTeamIndex = (state.activeTeam + 1) % state.teams.length;
-    document.getElementById("next-up").textContent = `${state.teams[nextTeamIndex]} is up next!`;
+  document.getElementById("next-btn").addEventListener("click", () => advance(1));
+  document.getElementById("prev-btn").addEventListener("click", () => advance(-1));
+
+  document.addEventListener("keydown", (e) => {
+    if (screens.cards.classList.contains("hidden")) return;
+    if (e.key === "ArrowRight") advance(1);
+    if (e.key === "ArrowLeft") advance(-1);
+  });
+
+  // --- Swipe / drag handling ---
+  const drag = { active: false, startX: 0, startY: 0, dx: 0 };
+  const SWIPE_THRESHOLD = 70;
+
+  function onPointerDown(e) {
+    drag.active = true;
+    drag.startX = e.clientX;
+    drag.startY = e.clientY;
+    drag.dx = 0;
+    wordCard.style.transition = "none";
   }
 
-  function escapeHtml(str) {
-    const div = document.createElement("div");
-    div.textContent = str;
-    return div.innerHTML;
+  function onPointerMove(e) {
+    if (!drag.active) return;
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+    if (Math.abs(dx) < Math.abs(dy)) return;
+    drag.dx = dx;
+    const rot = dx / 20;
+    wordCard.style.transform = `translateX(${dx}px) rotate(${rot}deg)`;
+    wordCard.style.opacity = String(Math.max(1 - Math.abs(dx) / 400, 0.4));
   }
 
-  function handleCorrect() {
-    state.roundScore += 1;
-    document.getElementById("round-score").textContent = `Correct this round: ${state.roundScore}`;
-    vibrate(30);
-    nextCard();
+  function onPointerUp() {
+    if (!drag.active) return;
+    drag.active = false;
+    const dx = drag.dx;
+    if (Math.abs(dx) > SWIPE_THRESHOLD) {
+      advance(dx < 0 ? 1 : -1);
+    } else {
+      wordCard.style.transition = "transform 0.2s ease, opacity 0.2s ease";
+      wordCard.style.transform = "translateX(0) rotate(0)";
+      wordCard.style.opacity = "1";
+    }
   }
 
-  function handleSkip() {
-    nextCard();
-  }
-
-  document.getElementById("correct-btn").addEventListener("click", handleCorrect);
-  document.getElementById("skip-btn").addEventListener("click", handleSkip);
-  document.getElementById("end-round-btn").addEventListener("click", endRound);
+  wordCard.addEventListener("pointerdown", onPointerDown);
+  window.addEventListener("pointermove", onPointerMove);
+  window.addEventListener("pointerup", onPointerUp);
+  window.addEventListener("pointercancel", onPointerUp);
 
   document.getElementById("start-btn").addEventListener("click", () => {
-    const t1 = document.getElementById("team1-name").value.trim() || "Team 1";
-    const t2 = document.getElementById("team2-name").value.trim() || "Team 2";
-    state.teams = [t1, t2];
-    state.scores = [0, 0];
-    state.activeTeam = 0;
-    startRound();
+    buildDeck();
+    document.getElementById("category-label").textContent = categoryLabelText();
+    wordCard.style.transition = "none";
+    wordCard.style.transform = "translateX(0) rotate(0)";
+    wordCard.style.opacity = "1";
+    renderCard();
+    showScreen("cards");
   });
 
-  document.getElementById("next-round-btn").addEventListener("click", () => {
-    state.activeTeam = (state.activeTeam + 1) % state.teams.length;
-    startRound();
-  });
-
-  document.getElementById("new-game-btn").addEventListener("click", () => {
-    clearInterval(state.timerId);
-    state.scores = [0, 0];
-    state.activeTeam = 0;
+  document.getElementById("change-categories-btn").addEventListener("click", () => {
     showScreen("setup");
   });
 

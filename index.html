@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
   <title>Taboo Jr</title>
-  <meta name="description" content="A kid-friendly Taboo word game for pass-and-play on a phone." />
+  <meta name="description" content="A kid-friendly Taboo word game for mobile — pick categories and swipe through the cards." />
   <meta name="theme-color" content="#6d28d9" />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
@@ -20,15 +20,6 @@
     <section id="screen-setup" class="screen">
       <h1 class="title">🎉 Taboo Jr</h1>
       <p class="subtitle">Say the word. Don't say the taboo words!</p>
-
-      <div class="card">
-        <h2>Round length</h2>
-        <div class="pill-group" id="time-group">
-          <button class="pill" data-time="30">30s</button>
-          <button class="pill selected" data-time="60">60s</button>
-          <button class="pill" data-time="90">90s</button>
-        </div>
-      </div>
 
       <div class="card">
         <h2>Difficulty</h2>
@@ -51,52 +42,29 @@
         </div>
       </div>
 
-      <div class="card">
-        <h2>Teams</h2>
-        <div class="team-inputs">
-          <input id="team1-name" class="team-input" maxlength="16" value="Team 1" />
-          <input id="team2-name" class="team-input" maxlength="16" value="Team 2" />
+      <button id="start-btn" class="big-btn go">Start Playing ▶</button>
+    </section>
+
+    <!-- CARDS SCREEN -->
+    <section id="screen-cards" class="screen hidden">
+      <div class="cards-header">
+        <button id="change-categories-btn" class="text-btn">◂ Categories</button>
+        <div class="category-label" id="category-label">All Categories</div>
+      </div>
+
+      <div class="card-stack">
+        <div class="word-card" id="word-card">
+          <div class="target-word" id="target-word">Ready?</div>
+          <div class="taboo-list" id="taboo-list"></div>
         </div>
       </div>
 
-      <button id="start-btn" class="big-btn go">Start Game ▶</button>
-    </section>
+      <div class="swipe-hint">‹ swipe to browse ›</div>
 
-    <!-- GAME SCREEN -->
-    <section id="screen-game" class="screen hidden">
-      <div class="game-header">
-        <div class="turn-indicator" id="turn-indicator">Team 1's turn</div>
-        <div class="timer-wrap">
-          <svg class="timer-ring" viewBox="0 0 100 100">
-            <circle class="timer-ring-bg" cx="50" cy="50" r="45"></circle>
-            <circle class="timer-ring-fg" id="timer-ring-fg" cx="50" cy="50" r="45"></circle>
-          </svg>
-          <span class="timer-text" id="timer-text">60</span>
-        </div>
+      <div class="nav-row">
+        <button id="prev-btn" class="nav-btn" aria-label="Previous word">‹</button>
+        <button id="next-btn" class="nav-btn" aria-label="Next word">›</button>
       </div>
-
-      <div class="round-score" id="round-score">Correct this round: 0</div>
-
-      <div class="word-card" id="word-card">
-        <div class="target-word" id="target-word">Ready?</div>
-        <div class="taboo-list" id="taboo-list"></div>
-      </div>
-
-      <div class="action-row">
-        <button id="skip-btn" class="action-btn skip">✗ Skip</button>
-        <button id="correct-btn" class="action-btn correct">✓ Correct</button>
-      </div>
-
-      <button id="end-round-btn" class="text-btn">End round early</button>
-    </section>
-
-    <!-- ROUND OVER SCREEN -->
-    <section id="screen-roundover" class="screen hidden">
-      <h1 class="title">⏰ Time's up!</h1>
-      <div class="card scoreboard" id="scoreboard"></div>
-      <p class="next-up" id="next-up"></p>
-      <button id="next-round-btn" class="big-btn go">Next Team ▶</button>
-      <button id="new-game-btn" class="text-btn">Start a new game</button>
     </section>
 
   </div>

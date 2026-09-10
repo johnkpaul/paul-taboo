@@ -35,8 +35,8 @@ Then open `http://localhost:8000`.
 
 ## Game rules
 
-1. Pick round length, difficulty, categories, and team names.
-2. Pass the phone to the clue-giver. They see the target word plus taboo
-   words they can't say.
-3. Tap ✓ Correct or ✗ Skip to move to the next card.
-4. When time's up, pass to the other team.
+1. Pick a difficulty and one or more categories.
+2. Say the target word using clues, without saying any of the taboo words
+   below it.
+3. Swipe the card left/right (or tap the ‹ › buttons) to move between words.
+4. Tap "Categories" any time to change your selection.
